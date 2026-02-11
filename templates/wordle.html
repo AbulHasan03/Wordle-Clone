@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle Clone</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+            background-color: #121213;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        header {
+            border-bottom: 1px solid #3a3a3c;
+            width: 100%;
+            max-width: 500px;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: 0.2rem;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+        }
+
+        .tile {
+            width: 62px;
+            height: 62px;
+            border: 2px solid #3a3a3c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            text-transform: uppercase;
+            background-color: #121213;
+            transition: all 0.2s ease;
+        }
+
+        .tile.filled {
+            border-color: #565758;
+            animation: pop 0.1s ease;
+        }
+
+        .tile.correct {
+            background-color: #538d4e;
+            border-color: #538d4e;
+            color: white;
+        }
+
+        .tile.present {
+            background-color: #b59f3b;
+            border-color: #b59f3b;
+            color: white;
+        }
+
+        .tile.absent {
+            background-color: #3a3a3c;
+            border-color: #3a3a3c;
+            color: white;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .keyboard {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .key {
+            background-color: #818384;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 0;
+            height: 58px;
+            cursor: pointer;
+            text-transform: uppercase;
+            flex: 1;
+            max-width: 43px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.1s ease;
+        }
+
+        .key:hover {
+            background-color: #9a9a9a;
+        }
+
+        .key.wide {
+            max-width: 65px;
+            flex: 1.5;
+            font-size: 12px;
+        }
+
+        .key.correct {
+            background-color: #538d4e;
+        }
+
+        .key.present {
+            background-color: #b59f3b;
+        }
+
+        .key.absent {
+            background-color: #3a3a3c;
+        }
+
+        .message {
+            position: fixed;
+            top: 80px;
+            background-color: #ffffff;
+            color: #000000;
+            padding: 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            animation: slideIn 0.2s ease;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #121213;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .modal-content p {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .modal-content button {
+            background-color: #538d4e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal-content button:hover {
+            background-color: #6aaa64;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>WORDLE</h1>
+    </header>
+
+    <div class="game-container">
+        <div class="board" id="board">
+            <!-- Rows will be generated by JavaScript -->
+        </div>
+
+        <div class="keyboard" id="keyboard">
+            <div class="keyboard-row">
+                <button class="key" data-key="Q">Q</button>
+                <button class="key" data-key="W">W</button>
+                <button class="key" data-key="E">E</button>
+                <button class="key" data-key="R">R</button>
+                <button class="key" data-key="T">T</button>
+                <button class="key" data-key="Y">Y</button>
+                <button class="key" data-key="U">U</button>
+                <button class="key" data-key="I">I</button>
+                <button class="key" data-key="O">O</button>
+                <button class="key" data-key="P">P</button>
+            </div>
+            <div class="keyboard-row">
+                <button class="key" data-key="A">A</button>
+                <button class="key" data-key="S">S</button>
+                <button class="key" data-key="D">D</button>
+                <button class="key" data-key="F">F</button>
+                <button class="key" data-key="G">G</button>
+                <button class="key" data-key="H">H</button>
+                <button class="key" data-key="J">J</button>
+                <button class="key" data-key="K">K</button>
+                <button class="key" data-key="L">L</button>
+            </div>
+            <div class="keyboard-row">
+                <button class="key wide" data-key="ENTER">ENTER</button>
+                <button class="key" data-key="Z">Z</button>
+                <button class="key" data-key="X">X</button>
+                <button class="key" data-key="C">C</button>
+                <button class="key" data-key="V">V</button>
+                <button class="key" data-key="B">B</button>
+                <button class="key" data-key="N">N</button>
+                <button class="key" data-key="M">M</button>
+                <button class="key wide" data-key="BACKSPACE">⌫</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 id="modal-title"></h2>
+            <p id="modal-message"></p>
+            <button onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const WORD_LENGTH = 5;
+        const MAX_GUESSES = 6;
+
+        let currentRow = 0;
+        let currentTile = 0;
+        let currentGuess = '';
+        let gameOver = false;
+        let keyboardState = {};
+
+        // Initialize the board
+        function initBoard() {
+            const board = document.getElementById('board');
+            for (let i = 0; i < MAX_GUESSES; i++) {
+                const row = document.createElement('div');
+                row.className = 'row';
+                for (let j = 0; j < WORD_LENGTH; j++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.id = `tile-${i}-${j}`;
+                    row.appendChild(tile);
+                }
+                board.appendChild(row);
+            }
+        }
+
+        // Show message
+        function showMessage(text, duration = 2000) {
+            const message = document.createElement('div');
+            message.className = 'message';
+            message.textContent = text;
+            document.body.appendChild(message);
+            setTimeout(() => message.remove(), duration);
+        }
+
+        // Show modal
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('modal').classList.add('show');
+        }
+
+        // Update tile
+        function updateTile(letter) {
+            if (currentTile < WORD_LENGTH) {
+                const tile = document.getElementById(`tile-${currentRow}-${currentTile}`);
+                tile.textContent = letter;
+                tile.classList.add('filled');
+                currentGuess += letter;
+                currentTile++;
+            }
+        }
+
+        // Delete letter
+        function deleteLetter() {
+            if (currentTile > 0) {
+                currentTile--;
+                const tile = document.getElementById(`tile-${currentRow}-${currentTile}`);
+                tile.textContent = '';
+                tile.classList.remove('filled');
+                currentGuess = currentGuess.slice(0, -1);
+            }
+        }
+
+        // Update keyboard
+        function updateKeyboard(letter, status) {
+            const key = document.querySelector(`[data-key="${letter}"]`);
+            if (!key) return;
+
+            // Priority: correct > present > absent
+            const currentStatus = keyboardState[letter];
+            if (currentStatus === 'correct') return;
+            if (currentStatus === 'present' && status === 'absent') return;
+
+            keyboardState[letter] = status;
+            key.className = `key ${status}`;
+            if (letter === 'ENTER' || letter === 'BACKSPACE') {
+                key.classList.add('wide');
+            }
+        }
+
+        // Submit guess
+        async function submitGuess() {
+            if (currentTile !== WORD_LENGTH) {
+                showMessage('Not enough letters');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        guess: currentGuess,
+                        guess_number: currentRow + 1
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showMessage(data.error || 'Invalid guess');
+                    return;
+                }
+
+                // Animate tiles
+                for (let i = 0; i < WORD_LENGTH; i++) {
+                    setTimeout(() => {
+                        const tile = document.getElementById(`tile-${currentRow}-${i}`);
+                        const status = data.result[i];
+                        tile.classList.add(status);
+                        updateKeyboard(currentGuess[i], status);
+                    }, i * 200);
+                }
+
+                // Wait for animation to complete before moving to next row
+                setTimeout(() => {
+                    if (data.correct) {
+                        gameOver = true;
+                        setTimeout(() => {
+                            showModal('Congratulations!', `You guessed the word in ${currentRow + 1} ${currentRow + 1 === 1 ? 'guess' : 'guesses'}!`);
+                        }, 500);
+                    } else {
+                        currentRow++;
+                        currentTile = 0;
+                        currentGuess = '';
+
+                        if (currentRow >= MAX_GUESSES) {
+                            gameOver = true;
+                            setTimeout(() => {
+                                showModal('Game Over', `The word was: ${data.word || 'unknown'}`);
+                            }, 500);
+                        }
+                    }
+                }, WORD_LENGTH * 200);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error checking guess');
+            }
+        }
+
+        // Handle key press
+        function handleKeyPress(key) {
+            if (gameOver) return;
+
+            if (key === 'ENTER') {
+                submitGuess();
+            } else if (key === 'BACKSPACE') {
+                deleteLetter();
+            } else if (key.length === 1 && key.match(/[A-Z]/i)) {
+                updateTile(key.toUpperCase());
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                handleKeyPress('ENTER');
+            } else if (e.key === 'Backspace') {
+                handleKeyPress('BACKSPACE');
+            } else if (e.key.length === 1 && e.key.match(/[a-z]/i)) {
+                handleKeyPress(e.key.toUpperCase());
+            }
+        });
+
+        document.getElementById('keyboard').addEventListener('click', (e) => {
+            if (e.target.classList.contains('key')) {
+                const key = e.target.dataset.key;
+                handleKeyPress(key);
+            }
+        });
+
+        // Initialize game
+        initBoard();
+    </script>
+</body>
+</html>
